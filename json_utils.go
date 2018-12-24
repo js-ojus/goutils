@@ -4,6 +4,16 @@ import (
 	"encoding/json"
 )
 
+// Log provides a structure for log entries.  When written, these are
+// converted to JSON.
+type Log map[string]interface{}
+
+// String converts the map of fields to JSON.
+func (l Log) String() string {
+	buf, _ := json.Marshal(l)
+	return string(buf)
+}
+
 // MessageObj is a holder of a status and a message.  This is defined to
 // ease generation of JSON response messages.
 type MessageObj struct {
