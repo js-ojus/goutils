@@ -33,7 +33,7 @@ func TestLatLng003(t *testing.T) {
 }
 
 func TestLatLng004(t *testing.T) {
-	s1 := `171°46'27.2345"W`
+	s1 := `171°46'27.1345"W`
 	f, err := DMSStr2Float(s1)
 	if err != nil {
 		t.Error(err)
@@ -51,7 +51,16 @@ func TestLatLng005(t *testing.T) {
 }
 
 func TestLatLng006(t *testing.T) {
-	s1 := `N11°0'16"`
+	s1 := `N11°0'16`
+	f, err := DMSStr2Float(s1)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Println(f)
+}
+
+func TestLatLng007(t *testing.T) {
+	s1 := `171°46'27.2345"W`
 	f, err := DMSStr2Float(s1)
 	if err != nil {
 		t.Error(err)
