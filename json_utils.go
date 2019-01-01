@@ -17,8 +17,8 @@ func (l Log) String() string {
 // MessageObj is a holder of a status and a message.  This is defined to
 // ease generation of JSON response messages.
 type MessageObj struct {
-	Status  string
-	Message string
+	Status  string `json:"status"`
+	Message string `json:"message"`
 }
 
 // JSONForMessage answers a JSON-encoded object with the given status
@@ -42,9 +42,9 @@ func JSONForError(err error) string {
 // from the given map.
 func JSONForMap(ok bool, obj map[string]interface{}) string {
 	if ok {
-		obj["Status"] = "OK"
+		obj["status"] = "OK"
 	} else {
-		obj["Status"] = "Error"
+		obj["status"] = "Error"
 	}
 	buf, err := json.Marshal(obj)
 	if err != nil {
