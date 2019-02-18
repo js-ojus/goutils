@@ -5,66 +5,20 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
-	"net/http"
 )
-
-// Errors is the global map of errors.  It serves as the central place
-// to define error codes and their textual messages.
-var Errors map[int]string
-
-//
-
-func init() {
-	Errors = map[int]string{
-		// Internal system errors.
-		101: "Internal database error.",
-		102: "Internal system error.",
-
-		// API / transport errors.
-		1001: "Corrupt HTTP request body.",
-		1002: "Corrupt request envelope.",
-		1003: "Request body contains invalid JSON.",
-		1004: "Unhandled request method.",
-
-		// Generic application logic errors.
-		1101: "Missing mandatory arguments.",
-		1102: "Uniqueness constraint violation.",
-		1103: "Invalid continuation token format.",
-		1104: "Invalid continuation token.",
-		1105: "Referential integrity violation.",
-		1106: "Empty result set; record could not be found.",
-    }
-}
-
-// KV is a simple map from strings to arbitrary values.
-type KV map[string]interface{}
 
 // Report holds the specifics of an error that has to be reported back
 // to the user.  Since the ouput is potentially visible to an end-user,
 // caution should be exercised in forming this object.
 type Report struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code    int    `json:"code,omitempty"`
+	Message string `json:"message,omitempty"`
 	Data    KV     `json:"data,omitempty"`
 }
 
 // String answers the JSON-formatted string of this report object.
 func (r Report) String() string {
 	buf, _ := json.Marshal(r)
-	return string(buf)
-}
-
-// Log specifies the level of the message: "INFO", "WARN", "ERRO" or
-// "FATA".  It also holds specific information that should be logged to
-// aid the developer.
-type Log struct {
-	Level string `json:"level"`
-	Data  KV     `json:"data,omitempty"`
-}
-
-// String answers the JSON-formatted string of this log object.
-func (l Log) String() string {
-	buf, _ := json.Marshal(l)
 	return string(buf)
 }
 
@@ -92,10 +46,10 @@ type RequestEnvelope struct {
 	Body   json.RawMessage `json:"body"`
 }
 
-// OpenEnvelope opens the envelope by reading the full body of the HTTP
+// OpenEnvelope opens the envelope by reading the full body of the
 // request, and then reading it into an instance of `RequestEnvelope`.
-func OpenEnvelope(r *http.Request) (*RequestEnvelope, *Report) {
-	buf, err := ioutil.ReadAll(r.Body)
+func OpenEnvelope(r io.Reader) (*RequestEnvelope, *Report) {
+	buf, err := ioutil.ReadAll(r)
 	if err != nil {
 		return nil, &Report{Code: 1001, Data: KV{"ioErr": err.Error()}}
 	}
@@ -117,7 +71,7 @@ func SendSuccess(w io.Writer, msg string) {
 	}{"OK", msg}
 	buf, err := json.Marshal(r)
 	if err != nil {
-		log.Print(Log{Level: "ERRO", Data: KV{"jsonErr": err.Error(), "msg": msg}})
+		log.Println(NewError("json").Add("msg", err.Error()))
 		io.WriteString(w, Report{Code: 102, Message: Errors[102]}.String())
 		return
 	}
@@ -127,19 +81,19 @@ func SendSuccess(w io.Writer, msg string) {
 
 // SendError prepares and writes an error JSON response based on the
 // given values.
-func SendError(w io.Writer, eobj *Report) {
-	if eobj.Message == "" {
-		if eobj.Code > 0 {
-			eobj.Message = Errors[eobj.Code]
+func SendError(w io.Writer, rep Report) {
+	if rep.Message == "" {
+		if rep.Code > 0 {
+			rep.Message = Errors[rep.Code]
 		}
 	}
 	r := struct {
 		Status string `json:"status"`
-		*Report
-	}{"Error", eobj}
+		Report
+	}{"Error", rep}
 	buf, err := json.Marshal(r)
 	if err != nil {
-		log.Print(Log{Level: "ERRO", Data: KV{"jsonErr": err.Error()}})
+		log.Println(NewError("json").Add("msg", err.Error()).Add("reportCode", rep.Code))
 		io.WriteString(w, Report{Code: 102, Message: Errors[102]}.String())
 		return
 	}
@@ -156,7 +110,7 @@ func SendResult(w io.Writer, body interface{}) {
 	}{"OK", body}
 	buf, err := json.Marshal(r)
 	if err != nil {
-		log.Print(Log{Level: "ERRO", Data: KV{"jsonErr": err.Error()}})
+		log.Println(NewError("json").Add("msg", err.Error()))
 		io.WriteString(w, Report{Code: 102, Message: Errors[102]}.String())
 		return
 	}

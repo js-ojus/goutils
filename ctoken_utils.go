@@ -5,7 +5,7 @@ import (
 )
 
 // EncodeCtoken accepts a string continuation token, base64-encodes it,
-// then hex-encodes it, and answers the final string.
+// and answers the final string.
 func EncodeCtoken(ctoken string) string {
 	buf := make([]byte, base64.StdEncoding.EncodedLen(len(ctoken)))
 	base64.StdEncoding.Encode(buf, []byte(ctoken))
